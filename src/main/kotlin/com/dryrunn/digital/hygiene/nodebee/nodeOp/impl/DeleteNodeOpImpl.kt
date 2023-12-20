@@ -1,0 +1,31 @@
+package com.dryrunn.digital.hygiene.nodebee.nodeOp.impl
+
+import com.dryrunn.digital.hygiene.nodebee.context.ConfigContext
+import com.dryrunn.digital.hygiene.nodebee.interfaces.INodeData
+import com.dryrunn.digital.hygiene.nodebee.interfaces.IOpFactory
+import com.dryrunn.digital.hygiene.nodebee.nodeOp.INodeOp
+import com.dryrunn.digital.hygiene.nodebee.nodeOp.impl.factory.DeleteNodeFactory
+import com.dryrunn.digital.hygiene.nodebee.structs.Node
+import com.dryrunn.digital.hygiene.nodebee.structs.NodeOpResponse
+
+/**
+ * Project: node-bee
+ * Author: vermakartik on 16/12/23
+ */
+
+class DeleteNodeOpImpl<U, T : INodeData>(
+    private val configContext: ConfigContext<U, T>,
+    private val deleteNodeFactory : IOpFactory<T, Node<U, T>, INodeOp<U, T>>
+) : INodeOp<U, T> {
+
+    override fun operate(node: Node<U, T>) : NodeOpResponse<U, T> {
+        return try {
+            deleteNodeFactory
+                .getImpl(node)
+                .operate(node)
+        } catch (e : Exception) {
+            NodeOpResponse.fail(e.message ?: "Error deleting the node!")
+        }
+    }
+
+}
