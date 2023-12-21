@@ -27,7 +27,6 @@ class AtStartImpl<U, T : INodeData>(
     override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) : Node<U, T> {
         val updatedNode = super.createRequiredOps(node, ops)
 
-        super.createRequiredOps(node, ops)
         val parent : Node<U, T> = node.parent(null)!!
         val first : Node<U, T> = parent.children.first(backend)!!
 

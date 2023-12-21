@@ -25,7 +25,7 @@ abstract class AbsBaseNodeOpImpl<U, T : INodeData>(
         node.getParents(backendImpl)
             .forEach {
                 if(it.nodeId != node.parent) {
-                    ops.add { backendImpl.update(it.incrementVersion()) }
+                    ops.add { backendImpl.updateOnExistingVersion(it.version, it.incrementVersion()) }
                 } else {
 //                    To be handled by the class to increment the parent and sibling versions!!
                 }
