@@ -10,6 +10,7 @@ import com.dryrunn.digital.hygiene.nodebee.nodeOp.impl.AbsBaseNodeOpImpl
 import com.dryrunn.digital.hygiene.nodebee.nodeOp.impl.factory.InsertNodeFactory
 import com.dryrunn.digital.hygiene.nodebee.structs.Node
 import com.dryrunn.digital.hygiene.nodebee.structs.NodeOpResponse
+import com.dryrunn.digital.hygiene.nodebee.structs.extensions.incrementVersion
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -22,14 +23,16 @@ import org.springframework.stereotype.Component
 @Component
 abstract class AbsBaseInsertNodeOpImpl<U, T : INodeData>(
     configContext: ConfigContext<U, T>,
-    backend : INodeStore<U, T>,
+    private val backend : INodeStore<U, T>,
     transactional : ITransactional
 ) : AbsBaseNodeOpImpl<U, T>(
     backend,
     transactional
 ) {
 
-    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) {
-        ops.add { node.copy(version = node.version + 1) }
+    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) : Node<U, T> {
+        val versionUpdateNode = node.incrementVersion()
+        ops.add { backend.updateOnExistingVersion(node.version, versionUpdateNode) }
+        return versionUpdateNode
     }
 }

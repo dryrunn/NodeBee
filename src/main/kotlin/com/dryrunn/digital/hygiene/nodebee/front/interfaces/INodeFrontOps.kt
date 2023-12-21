@@ -8,14 +8,18 @@ import com.dryrunn.digital.hygiene.nodebee.backend.impl.mongo.interfaces.IMongoN
 import com.dryrunn.digital.hygiene.nodebee.backend.impl.transactional.SequentialTransactionalImpl
 import com.dryrunn.digital.hygiene.nodebee.configs.RootNodeDataConfig
 import com.dryrunn.digital.hygiene.nodebee.context.ConfigContext
+import com.dryrunn.digital.hygiene.nodebee.enums.OpType
 import com.dryrunn.digital.hygiene.nodebee.exceptions.InsertionException
 import com.dryrunn.digital.hygiene.nodebee.factory.provider.impl.NodeOpFactoryProvider
 import com.dryrunn.digital.hygiene.nodebee.front.impl.NodeOpImpl
 import com.dryrunn.digital.hygiene.nodebee.front.struct.NodeConfig
 import com.dryrunn.digital.hygiene.nodebee.interfaces.INodeData
+import com.dryrunn.digital.hygiene.nodebee.interfaces.IOpFactory
 import com.dryrunn.digital.hygiene.nodebee.nodeOp.impl.IONodeFactory
 import com.dryrunn.digital.hygiene.nodebee.sequenceGenerator.ISequenceGenerator
 import com.dryrunn.digital.hygiene.nodebee.structs.Node
+import com.dryrunn.digital.hygiene.nodebee.validator.INodeValidator
+import com.dryrunn.digital.hygiene.nodebee.validator.ValidatorFactory
 import org.springframework.data.mongodb.core.MongoTemplate
 
 /**
@@ -37,7 +41,8 @@ interface INodeFrontOps<U, T : INodeData> {
             sequenceGenerator : ISequenceGenerator<U, T>,
             configContext : ConfigContext<U, T>,
             backend: INodeStore<U, T>,
-            transactional: ITransactional = SequentialTransactionalImpl()
+            transactional: ITransactional = SequentialTransactionalImpl(),
+            validatorFactory : IOpFactory<T, OpType, INodeValidator<U, T>> = ValidatorFactory()
         ) : INodeFrontOps<U, T> {
             return NodeOpImpl(
                 sequenceGenerator = sequenceGenerator,
@@ -48,8 +53,9 @@ interface INodeFrontOps<U, T : INodeData> {
                     factoryProvider = NodeOpFactoryProvider(
                         configContext = configContext,
                         backend = backend,
-                        transactional = transactional
-                    )
+                        transactional = transactional,
+                    ),
+                    validatorFactory = validatorFactory
                 )
             )
         }

@@ -33,18 +33,23 @@ abstract class AbsNodeOpImpl<U, T : INodeData>(
             parent = parentNode.nodeId,
             sibling = Sibling(
                 next = nextNode?.nodeId,
-                previous = previousNode?.nodeId
+                previous = previousNode?.nodeId,
+                _previousNodeCache = previousNode,
+                _nextNodeCache =  nextNode
             ),
             children = Children(mapOf()),
-            version = 1
+            version = 1,
+            _parentNodeCache = parentNode
         )
         val nextId = sequenceGenerator.next(newNode)
-        return insert(newNode.copy(nodeId = nextId))
+        return insert(newNode.copyWithCache(nodeId = nextId))
     }
 
     override fun remove(node: NodeConfig<U, T>): Boolean {
         val currentNode = queryNodeByData(node.current)
         currentNode.parent(backend)
+        currentNode.sibling.next(backend)
+        currentNode.sibling.previous(backend)
         return remove(currentNode)
     }
 

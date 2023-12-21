@@ -10,6 +10,7 @@ import com.dryrunn.digital.hygiene.nodebee.structs.Node
 import com.dryrunn.digital.hygiene.nodebee.structs.NodeOpResponse
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.appendFirst
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.appendLast
+import com.dryrunn.digital.hygiene.nodebee.structs.extensions.incrementVersion
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.removeLast
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -25,28 +26,31 @@ class AtLastImpl<U, T : INodeData>(
     transactional : ITransactional
 ) : AbsBaseNodeOpImpl<U, T>(backend, transactional) {
 
-    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) {
+    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) : Node<U, T>{
         val parent : Node<U, T> = node.parent(null)!!
         val last : Node<U, T> = parent.children.last(backend)!!
 
         val parentUpdated = parent.copy(
             children = parent.children.removeLast()
-        )
+        ).incrementVersion()
         val lastUpdated = last.copy(
             sibling = last.sibling.copy(
                 next = null
             )
-        )
+        ).incrementVersion()
 
-        ops.add { backend.update(parentUpdated) }
-        ops.add { backend.update(lastUpdated) }
+        ops.add { backend.updateOnExistingVersion(parent.version, parentUpdated) }
+        ops.add { backend.updateOnExistingVersion(last.version, lastUpdated) }
+        ops.add { backend.remove(node) }
+
+        return node
     }
 
     companion object Util {
         fun <U, T : INodeData> canProcess(node : Node<U, T>, backend : INodeStore<U, T>) : Boolean {
             val parent = node.parent(backend)!!
             return (
-                parent.children.data.size == 2 &&
+                parent.children.data.size > 1 &&
                 (node.sibling.next?.run { false } ?: true)
             )
         }

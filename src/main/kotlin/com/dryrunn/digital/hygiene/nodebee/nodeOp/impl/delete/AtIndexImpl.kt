@@ -7,6 +7,7 @@ import com.dryrunn.digital.hygiene.nodebee.interfaces.INodeData
 import com.dryrunn.digital.hygiene.nodebee.nodeOp.INodeOp
 import com.dryrunn.digital.hygiene.nodebee.nodeOp.impl.AbsBaseNodeOpImpl
 import com.dryrunn.digital.hygiene.nodebee.structs.Node
+import com.dryrunn.digital.hygiene.nodebee.structs.extensions.incrementVersion
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.removeAtPos
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -25,7 +26,7 @@ class AtIndexImpl<U, T : INodeData>(
     transactional
 ) {
 
-    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) {
+    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) : Node<U, T> {
         val parent : Node<U, T> = node.parent(backend)!!
         val previous : Node<U, T> = node.sibling.previous(backend)!!
         val next : Node<U, T> = parent.sibling.next(backend)!!
@@ -39,20 +40,24 @@ class AtIndexImpl<U, T : INodeData>(
 
         val parentUpdated = parent.copy(
             children = parent.children.removeAtPos(position)
-        )
+        ).incrementVersion()
         val previousUpdated = previous.copy(
             sibling = previous.sibling.copy(
                 next = next.nodeId
             )
-        )
+        ).incrementVersion()
         val nextUpdated = next.copy(
             sibling = next.sibling.copy(
                 previous = previous.nodeId
             )
-        )
-        ops.add { backend.update(parentUpdated) }
-        ops.add { backend.update(nextUpdated) }
-        ops.add { backend.update(previousUpdated) }
+        ).incrementVersion()
+
+        ops.add { backend.updateOnExistingVersion(parent.version, parentUpdated) }
+        ops.add { backend.updateOnExistingVersion(next.version, nextUpdated) }
+        ops.add { backend.updateOnExistingVersion(previous.version, previousUpdated) }
+        ops.add { backend.remove(node) }
+
+        return node
     }
 
     companion object Util {

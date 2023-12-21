@@ -7,6 +7,7 @@ import com.dryrunn.digital.hygiene.nodebee.interfaces.INodeData
 import com.dryrunn.digital.hygiene.nodebee.nodeOp.impl.AbsBaseNodeOpImpl
 import com.dryrunn.digital.hygiene.nodebee.structs.Node
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.appendFirst
+import com.dryrunn.digital.hygiene.nodebee.structs.extensions.incrementVersion
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
@@ -18,14 +19,18 @@ class SingleOnlyImpl<U, T : INodeData>(
     private val configContext: ConfigContext<U, T>,
     private val backend : INodeStore<U, T>,
     transactional: ITransactional
-) : AbsBaseNodeOpImpl<U, T>(backend, transactional) {
+) : AbsBaseInsertNodeOpImpl<U, T>(configContext, backend, transactional) {
 
-    override fun createRequiredOps(node : Node<U, T>, ops: MutableList<() -> Unit>) {
+    override fun createRequiredOps(node : Node<U, T>, ops: MutableList<() -> Unit>) : Node<U, T> {
+        val updatedNode = super.createRequiredOps(node, ops)
+
         val parent : Node<U, T> = node.parent(null)!!
         val parentUpdated = parent.copy(
             children = parent.children.appendFirst(nodeId = node.nodeId!!)
-        )
-        ops.add { backend.update(parentUpdated) }
+        ).incrementVersion()
+        ops.add { backend.updateOnExistingVersion(parent.version, parentUpdated) }
+
+        return updatedNode
     }
 
     companion object Util {

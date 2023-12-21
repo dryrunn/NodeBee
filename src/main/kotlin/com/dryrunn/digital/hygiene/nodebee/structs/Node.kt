@@ -17,6 +17,19 @@ data class Node<U, T : INodeData>(
     val version : Int
 ) {
 
+    constructor(
+        nodeId : U?,
+        data : T?,
+        sibling : Sibling<U, T>,
+        parent : U?,
+        children : Children<U, T>,
+        version : Int,
+        _parentNodeCache : Node<U, T>
+    ) : this(nodeId, data, sibling, parent, children, version){
+        _parentNode = _parentNodeCache
+        _parentLoaded = true
+    }
+
     private var _parentNode: Node<U, T>? = null
     private var _parentLoaded = false
 
@@ -32,6 +45,23 @@ data class Node<U, T : INodeData>(
                 return@main null
             }
         } ?: _parentNode
+
+    fun copyWithCache(
+        nodeId : U? = this.nodeId,
+        data : T? = this.data,
+        sibling : Sibling<U, T> = this.sibling,
+        parent : U? = this.parent,
+        children : Children<U, T> = this.children,
+        version : Int = this.version,
+    ) = Node(
+        nodeId = nodeId,
+        data = data,
+        sibling = sibling.copyWithCache(),
+        parent = parent,
+        children = children,
+        version = version,
+        _parentNodeCache = _parentNode!!
+    )
 
     companion object NodeUtil {
         fun <U, T : INodeData> withOnlyNodeId(nodeId: U) = Node<U, T>(

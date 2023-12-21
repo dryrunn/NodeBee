@@ -62,4 +62,17 @@ open class MongoTemplateBackendImpl<U, T : IMongoNodeData>(
             ) as MongoNode<U, T>
         ).toNode()
     }
+
+    override fun updateOnExistingVersion(existingVersion: Int, node: Node<U, T>): Boolean {
+        val mongoNode = node.toMongoNode()
+        mongoTemplate.findAndModify(
+            Query().apply {
+                addCriteria(Criteria.where("version").`is`(existingVersion))
+                addCriteria(Criteria.where("nodeId").`is`(mongoNode.nodeId!!))
+            },
+            Update.fromDocument(Document().apply { mongoTemplate.converter.write(mongoNode, this) }),
+            MongoNode::class.java
+        )
+        return true
+    }
 }

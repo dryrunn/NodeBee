@@ -29,4 +29,6 @@ class UniqueIdFromBackendImpl<U, T : INodeData>(
     override fun get(node: Node<U, T>): Node<U, T> = nodeStore.get(node)
 
     override fun getByData(node: Node<U, T>): Node<U, T> = nodeStore.getByData(node)
+
+    override fun updateOnExistingVersion(existingVersion: Int, node: Node<U, T>): Boolean = nodeStore.updateOnExistingVersion(existingVersion, node)
 }

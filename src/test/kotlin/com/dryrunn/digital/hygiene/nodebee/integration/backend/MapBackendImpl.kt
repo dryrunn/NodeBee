@@ -10,7 +10,7 @@ import com.dryrunn.digital.hygiene.nodebee.structs.Node
  */
 class MapBackendImpl() : INodeStore<Int, TextNodeData> {
 
-    private val seq = InMemoryNumberSequenceGeneratorImpl<Int, TextNodeData>(21345)
+    private val seq = InMemoryNumberSequenceGeneratorImpl<Int, TextNodeData>(0)
     val mapBackend = mutableMapOf<Int, Node<Int, TextNodeData>>()
 
     override fun insert(node: Node<Int, TextNodeData>): Node<Int, TextNodeData> {
@@ -38,6 +38,13 @@ class MapBackendImpl() : INodeStore<Int, TextNodeData> {
 
     override fun getByData(node: Node<Int, TextNodeData>): Node<Int, TextNodeData> {
         return this.mapBackend.values.find { it.data?.getUniqueValue() == node.data!!.getUniqueValue() }!!
+    }
+
+    override fun updateOnExistingVersion(existingVersion: Int, node: Node<Int, TextNodeData>): Boolean {
+        return when(this.mapBackend[node.nodeId]!!.version == existingVersion) {
+            true -> update(node)
+            false -> throw Exception("Version mismatch")
+        }
     }
 }
 

@@ -10,6 +10,7 @@ import com.dryrunn.digital.hygiene.nodebee.structs.Children
 import com.dryrunn.digital.hygiene.nodebee.structs.Node
 import com.dryrunn.digital.hygiene.nodebee.structs.NodeOpResponse
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.appendFirst
+import com.dryrunn.digital.hygiene.nodebee.structs.extensions.incrementVersion
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.removeFirst
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -29,14 +30,16 @@ class SingleOnlyImpl<U, T : INodeData>(
     backend,
     transactional
 ) {
-    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) {
+    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) : Node<U, T> {
         val parent : Node<U, T> = node.parent(backend)!!
         val parentUpdated = parent.copy(
             children = parent.children.removeFirst()
-        )
+        ).incrementVersion()
 
-        ops.add { backend.update(parentUpdated) }
+        ops.add { backend.updateOnExistingVersion(parent.version, parentUpdated) }
         ops.add { backend.remove(node) }
+
+        return node
     }
 
     companion object Util {

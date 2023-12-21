@@ -13,6 +13,32 @@ data class Sibling<U, T : INodeData>(
     val previous : U?
 ) {
 
+    constructor(
+        next: U?,
+        previous: U?,
+        _nextNodeCache : Node<U, T>?,
+        _previousNodeCache : Node<U, T>?
+    ) : this(next, previous) {
+        _nextNodeCache?.run {
+            _nextNode = _nextNodeCache
+            _nextLoaded = true
+        }
+        _previousNodeCache?.run {
+            _previousNode = _previousNodeCache
+            _previousLoaded = true
+        }
+    }
+
+    fun copyWithCache(
+        next: U? = this.next,
+        previous: U? = this.previous
+    ) = Sibling(
+        next = next,
+        previous = previous,
+        _previousNodeCache = _previousNode,
+        _nextNodeCache =  _nextNode
+    )
+
     private var _nextNode : Node<U, T>? = null
     private  var _nextLoaded : Boolean = false
     private var _previousNode : Node<U, T>? = null

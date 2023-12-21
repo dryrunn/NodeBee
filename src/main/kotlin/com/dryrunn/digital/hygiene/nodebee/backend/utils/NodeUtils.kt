@@ -16,6 +16,6 @@ object NodeUtils {
         backend : INodeStore<U, T>
     ) : List<() -> Unit> =
         node.incrementParentVersion(null)
-            .map { { backend.update(node) } }
+            .map { { backend.update(it) } }
 
 }

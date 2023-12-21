@@ -10,6 +10,7 @@ import com.dryrunn.digital.hygiene.nodebee.structs.Node
 import com.dryrunn.digital.hygiene.nodebee.structs.NodeOpResponse
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.appendAtPos
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.appendFirst
+import com.dryrunn.digital.hygiene.nodebee.structs.extensions.incrementVersion
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
@@ -27,30 +28,34 @@ class AtIndexImpl<U, T : INodeData>(
     transactional
 ) {
 
-    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) {
-        super.createRequiredOps(node, ops)
+    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) : Node<U, T> {
+        val updatedNode = super.createRequiredOps(node, ops)
+
         val parent : Node<U, T> = node.parent(backend)!!
         val previous : Node<U, T> = node.sibling.previous(backend)!!
-        val next : Node<U, T> = parent.sibling.next(backend)!!
+        val next : Node<U, T> = node.sibling.next(backend)!!
 
         val position = parent.children.data.entries.first { it.value == next.nodeId }.key
 
         val parentUpdated = parent.copy(
             children = parent.children.appendAtPos(position, node.nodeId!!)
-        )
+        ).incrementVersion()
         val previousUpdated = previous.copy(
             sibling = previous.sibling.copy(
                 next = node.nodeId
             )
-        )
+        ).incrementVersion()
         val nextUpdated = next.copy(
             sibling = next.sibling.copy(
                 previous = node.nodeId
             )
-        )
-        ops.add { backend.update(parentUpdated) }
-        ops.add { backend.update(nextUpdated) }
-        ops.add { backend.update(previousUpdated) }
+        ).incrementVersion()
+
+        ops.add { backend.updateOnExistingVersion(parent.version, parentUpdated) }
+        ops.add { backend.updateOnExistingVersion(next.version, nextUpdated) }
+        ops.add { backend.updateOnExistingVersion(previous.version, previousUpdated) }
+
+        return updatedNode
     }
 
     companion object Util {

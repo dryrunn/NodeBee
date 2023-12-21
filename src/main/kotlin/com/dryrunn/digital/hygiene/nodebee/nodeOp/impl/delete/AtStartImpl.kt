@@ -9,6 +9,7 @@ import com.dryrunn.digital.hygiene.nodebee.structs.Node
 import com.dryrunn.digital.hygiene.nodebee.structs.NodeOpResponse
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.appendFirst
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.incrementParentVersion
+import com.dryrunn.digital.hygiene.nodebee.structs.extensions.incrementVersion
 import com.dryrunn.digital.hygiene.nodebee.structs.extensions.removeFirst
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
@@ -24,28 +25,31 @@ class AtStartImpl<U, T : INodeData>(
     transactional : ITransactional
 ) : AbsBaseNodeOpImpl<U, T>(backend, transactional) {
 
-    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) {
+    override fun createRequiredOps(node: Node<U, T>, ops: MutableList<() -> Unit>) : Node<U, T>{
         val parent : Node<U, T> = node.parent(null)!!
         val next : Node<U, T> = parent.sibling.next(backend)!!
 
         val parentUpdated = parent.copy(
             children = parent.children.removeFirst()
-        )
+        ).incrementVersion()
         val nextUpdated = next.copy(
             sibling = next.sibling.copy(
                 previous = null
             )
-        )
+        ).incrementVersion()
 
-        ops.add { backend.update(parentUpdated) }
-        ops.add { backend.update(nextUpdated) }
+        ops.add { backend.updateOnExistingVersion(parent.version, parentUpdated) }
+        ops.add { backend.updateOnExistingVersion(next.version, nextUpdated) }
+        ops.add { backend.remove(node) }
+
+        return node
     }
 
     companion object Util {
         fun <U, T : INodeData> canProcess(node : Node<U, T>, backend : INodeStore<U, T>) : Boolean {
             val parent = node.parent(backend)!!
             return (
-                parent.children.data.size == 2 &&
+                    parent.children.data.size > 1 &&
                 (node.sibling.previous?.run { false } ?: true)
             )
         }
